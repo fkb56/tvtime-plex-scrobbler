@@ -10,7 +10,9 @@ import logging
 import time
 import os
 import json
-
+import httplib
+import base64
+import getpass
 
 class Tvst(object):
 
@@ -123,3 +125,51 @@ class Tvst(object):
         fp.write(token)
         fp.close()
         self.logger.info('TVShow Time authorization successful.')
+
+    def plex_auth(self):
+        print '\n == Requesting access token from plex.tv =='
+
+        logger = logging.getLogger(__name__)
+        logger.info('Prompting for plex.tv credentials.')
+
+        username = raw_input('Enter plex.tv username: ')
+        password = getpass.getpass(prompt='Enter plex.tv password: ')
+        base64string = base64.encodestring('%s:%s' % (username, password)).replace('\n', '')
+        txdata = ""
+
+        headers={'Authorization': "Basic %s" % base64string,
+                        'X-Plex-Client-Identifier': "Test script",
+                        'X-Plex-Product': "Test script 356546545",
+                        'X-Plex-Version': "0.001"}
+
+        try:
+            conn = httplib.HTTPSConnection("plex.tv")
+        
+            logger.info('Requesting access token from plex.tv')
+            conn.request("POST","/users/sign_in.json",txdata,headers)
+
+            response = conn.getresponse()
+            # print response.status, response.reason
+            data = response.read()
+            # print str(data)
+            json_data = json.loads(data)
+
+            if ('error' in json_data):
+                print '\n Unable to request access token from plex.tv. \n\n Error: \n {error}'.format(error=json_data['error'])
+                logger.error('Unable to request access token from plex.tv, {error}'.format(error=json_data['error']))
+                conn.close()        
+                return False
+            
+            token = json_data['user']['authToken']
+                
+            conn.close()
+        except httplib.HTTPException, e:
+            logger.error('Unable to request access token from plex.tv, {error}'.format(error=e))
+            return False
+        
+        logger.info('Saving access token')
+        fp = open(self.cfg.get('plex-tvst-scrobbler', 'plex_access_token_location'), 'w')
+        fp.write(token)
+        fp.close()     
+
+        return True

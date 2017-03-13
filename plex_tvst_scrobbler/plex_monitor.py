@@ -9,6 +9,13 @@ import time
 
 from tvst import Tvst
 
+def get_plex_access_token(config):
+    if os.path.exists(config.get('plex-tvst-scrobbler', 'plex_access_token_location')):
+        plexfp = open(config.get('plex-tvst-scrobbler', 'plex_access_token_location'), 'r')
+        plex_access_token = plexfp.read().strip()
+        plexfp.close()
+    return plex_access_token
+
 def parse_line(log_line):
     ''' Matches known TV shows metadata log entries entries against input (log_line)
 
@@ -31,7 +38,7 @@ def parse_line(log_line):
             return m.group(1)
 
 
-def fetch_metadata(l_id, config):
+def fetch_metadata(l_id, config, plex_access_token):
     ''' retrieves the metadata information from the Plex media Server api. '''
 
     logger = logging.getLogger(__name__)
@@ -39,9 +46,15 @@ def fetch_metadata(l_id, config):
       'mediaserver_url'), l_id=l_id)
     logger.info('Fetching library metadata from {url}'.format(url=url))
 
+    headers = None
+
+    if plex_access_token:
+        headers = {'X-Plex-Token': plex_access_token}
+
     # fail if request is greater than 2 seconds.
     try:
-        metadata = urllib2.urlopen(url, timeout=2)
+        request = urllib2.Request(url, None, headers)
+        metadata = urllib2.urlopen(request, timeout=2)
     except urllib2.URLError, e:
         logger.error('urllib2 error reading from {url} \'{error}\''.format(url=url,
                       error=e))
@@ -92,6 +105,7 @@ def monitor_log(config):
     logger = logging.getLogger(__name__)
     st_mtime = False
     last_played = None
+    plex_access_token = get_plex_access_token(config)
 
     try:
         f = open(config.get('plex-tvst-scrobbler', 'mediaserver_log_location'))
@@ -142,7 +156,7 @@ def monitor_log(config):
                 logger.warn('Dupe detection : {0}, not submitting'.format(last_played))
                 continue
 
-            metadata = fetch_metadata(played, config)
+            metadata = fetch_metadata(played, config, plex_access_token)
 
             if not metadata: continue
 

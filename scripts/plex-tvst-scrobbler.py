@@ -68,6 +68,7 @@ if __name__ == '__main__':
     config = ConfigParser.ConfigParser(defaults = {
         'config file location': options.config_file,
         'session': os.path.expanduser('~/.config/plex-tvst-scrobbler/session_key'),
+        'plex_access_token_location': os.path.expanduser('~/.config/plex-tvst-scrobbler/plex_access_token'),
         'mediaserver_url': 'http://localhost:32400',
         'mediaserver_log_location': platform_log_directory(),
         'log_file': '/tmp/plex_tvst_scrobbler.log'
@@ -89,12 +90,22 @@ if __name__ == '__main__':
         logger.warn('Precheck completed. Exiting.')
         sys.exit(0)
 
+    tvst = Tvst(config)
+
+    # if a plex token object does not exist, prompt user 
+    # to authenticate to plex.tv to get a plex access token
+    if (not os.path.exists(config.get('plex-tvst-scrobbler','plex_access_token_location')) or
+      options.authenticate):
+        logger.info('Prompting to authenticate to plex.tv.')
+        result = False
+        while not result:
+            result = tvst.plex_auth()
+
     # if a valid session object does not exist, prompt user
     # to authenticate.
     if (not os.path.exists(config.get('plex-tvst-scrobbler','session')) or
       options.authenticate):
         logger.info('Prompting to authenticate to TVShow Time.')
-        tvst = Tvst(config)
         tvst.tvst_auth()
         print 'Please relaunch plex-tvst-scrobbler service.'
         logger.warn('Exiting application.')
