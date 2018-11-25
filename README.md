@@ -1,154 +1,98 @@
-plex-tvst-scrobbler
+tvtime-plex-scrobbler
 =====================
 
-plex-tvst-scrobbler provides a set of scripts that allow you to scrobble played episodes items to TVShow Time from the Plex Media Server application. plex-tvst-scrobbler was built to run across platforms, while it has not yet been tested on Windows, it *should* work.
+The original source [tvshowtime-plex-scrobbler](https://github.com/tvshowtime/tvshowtime-plex-scrobbler/) hasn't gotten any updates, is requires you to run on the same machine as Plex server and requires to set Plex logging to `DEBUG` level, which causes a lot of data.
+
+tvtime-plex-scrobbler provides a set of scripts that allow you to scrobble played episodes items to TVShow Time from the Plex Media Server application. tvtime-plex-scrobbler was built to run across platforms, while it has not yet been tested on Windows, it *should* work.
 
 A few points
 
-  - plex-tvst-scrobbler is an out of process tool. Meaning it is not a Plex Media Server plug-in. This tool runs separately of your Plex Media Server.
-  - Must be run on the Plex Media Server
-  - Uses python standard library. Python is the only requirement to run this application
-  - Parses Plex Media Server logs for the 'got played' string in the log file.
-  - Does not differentiate between clients. Meaning all media played, will be scrobbled while the script is running.
-  - Your plex-media-server logs must be set at DEBUG level (not VERBOSE)
+  - tvtime-plex-scrobbler is an out of process tool. Meaning it is not a Plex Media Server plug-in. This tool runs separately of your Plex Media Server.
+  - Uses python standard library. Python 2.7 is the only requirement to run this application
+  - Uses Plex API to retrieve the recently watched episodes
+  - Does not differentiate between clients. Meaning all media played, will be scrobbled.
 
 Installation
 ----
 
-**Linux, OSX**
-
-It is recommended (but not required) that you install this into a virtualenvironment.
-
-```
-virtualenv ~/.virtualenvs/plex-tvst-scrobber
-source ~/.virtualenvs/plex-tvst-scrobber/bin/activate
-```
-
-Fetch and install the source from the github repo.
-```
-git clone https://github.com/jesseward/plex-tvst-scrobbler.git
-cd plex-tvst-scrobbler
-python setup.py install
-
-```
-
-Alternatively, you can fetch the latest zip from github
-
-```
-wget https://github.com/jesseward/plex-tvst-scrobbler/archive/master.zip
-unzip master.zip
-cd plex-tvst-scrobbler-master
-python setup.py install
-```
-
-You're done.
-
-**Windows**
-Note: any feedback regarding MS Windows functionality is appreciated.
-
-*  Download and install Python 2.7.x from https://www.python.org/download/ . Ensure you enable the option to install Python to the system/site path.
-*  Download the zip of plex-tvst-scrobbler from https://github.com/jesseward/plex-tvst-scrobbler/archive/master.zip .
-* unzip archive to a temporary location. for this example we will use c:\temp\plex-tvst-scrobbler\
-* Open a command prompt and change to the \temp folder
-```
-cd c:\temp\plex-tvst-scrobbler\
-```
-* in the c:\temp\plex-tvst-scrobbler\ directory, run the installer from the dos prompt
-```
-python setup.py install
-```
-The above command installs the python scripts to various locations. Directories of interest are :
-* c:\Python27\scripts\
-* .config  - this directory is created in your Users home directory (http://en.wikipedia.org/wiki/Home_directory#Default_home_directory_per_operating_system). You will need to modify the configuration file from within this directory and point log locations at the appropriate locations for Plex on windows. You can set the "log_file" property to c:\temp or some other location which you wish to write logs to.
-
-To run the application, do the following from a DOS prompt
-```
-cd c:\Python27\scripts
-python plex-tvst-scrobbler.py
-```
+* Install Python 2.7.x from https://www.python.org/download/ . Ensure you enable the option to install Python to the system/site path.
+* Download the zip of tvtime-plex-scrobbler from https://github.com/quekky/tvtime-plex-scrobbler/archive/master.zip .
+* unzip archive to a location
 
 Configuration
 -----------
 
-The plex-tvst-scrobbler configuration file (plex_tvst_scrobbler.conf) is installed to ~/.config/plex-tvst-scrobbler/ . The following configuration values are available.
+The tvtime-plex-scrobbler configuration file (plex_tvst_scrobbler.conf) is in the **conf** directory. The following configuration values are available.
 
 If you're running Plex Media Server on a Linux based operating system, things should work out of the box.
 
 ```
+[plex-tvst-scrobbler]
 # REQUIRED: mediaserver_url is the location of the http service exposed by Plex Media Server
 # the default values should be 'ok', assuming you're running the plex scrobble
 # script from the same server as your plex media server
-mediaserver_url = 'http://localhost:32400'
-
-# REQUIRED: a python data struture that stores failed scrobbles. plex-tvst-scrobbler
-# will retry on a 60 minute interval, maximum of 10 attempts if tvshowtime.com is
-# experiencing issues.
-cache_location = tmp/plex_tvst_scrobbler.cache
-
-# REQUIRED: mediaserver_log_location references the log file location of the plex media server
-# the default under /var/lib/... is the default install of plex media server on
-# a Linux system. You may wish to change this value to reference your OS install.
-mediaserver_log_location = '/var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Logs/Plex Media Server.log'
+mediaserver_url = http://localhost:32400
 
 # REQUIRED: Where do you wish to write the plex-tvst-scrobbler log file.
 log_file = /tmp/plex_tvst_scrobbler.log
+
+# OPTIONAL: Where do you wish to write the token used for authorizing access to
+# you TVShow Time account
+session = /tmp/plex_tvst_scrobbler_session_key
+
+# OPTIONAL: Where do you wish to write the access token used for authenticating
+# to the plex API
+plex_access_token_location = /tmp/plex_tvst_scrobbler_plex_access_token
+
+# OPTIONAL: mediaserver_log_location references the log file location of the plex media server
+# the default under /var/lib/... is the default install of plex media server on
+# a Linux system. You may wish to change this value to reference your OS install.
+# https://support.plex.tv/hc/en-us/articles/200250417-Plex-Media-Server-Log-Files
+#mediaserver_log_location = /path/to/plex/media/server/log
+
 
 ```
 
 Running
 --------
 
-If you installed plex-tvst-scrobble to a virtual environment, enable the virtual env.
-
-```
-source ~/.virtualenvs/plex-tvst-scrobber/bin/activate
-```
-
-run the application
-```
-$ plex-tvst-scrobbler.py
-```
-On first run you will be prompted to authenticate and grant access to your TVShow Time account. Visit the URL generated by plex-tvst-scrobbler and follow the prompts to grant access to the application.
+On first run you will be prompted to authenticate and grant access to your Plex and TV Time account. Visit the URL generated by tvtime-plex-scrobbler and follow the prompts to grant access to the application.
 
 Example.
 
 
 ```
-$ plex-tvst-scrobbler.py
+$ python tvtime-plex-scrobbler.py
 
+== Requesting Requesting access token from plex.tv ==
+Enter plex.tv username:
+Enter plex.tv password:
 == Requesting tvshowtime.com auth ==
 
 Please do the following to authorize the scrobbler:
 
-1/ Connect on https://www.tvshowtime.com/activate
+1/ Connect on https://www.tvtime.com/activate
 2/ Enter the code: xxxx-xxxx
 
 Have you authorized me [y/N] :
 
 ```
 
-Once this is complete, please re-start the service, listen to audio via Plex and watch as your music is scrobbled. You may wish to leave the service running in the background. On a POSIX system, wrap the script in the no-hangup utility.
+
+Once this is complete, please run the program again to sync. The program will exit once it have sync finish.
 
 ```
-$ nohup plex-tvst-scrobbler.py &
+$ python tvtime-plex-scrobbler.py
 ```
+
+You can use scheduler or cronjob to schedule the program to run every hour.
 
 Troubleshooting & Known Issues
 -------------
 
-* If you're experiencing authentication issues (appearing in plex_tvst_scrobbler.log), remove the ~/.config/plex-tvst-scrobbler/session file. This stores your TVShow Time authentication token. There is no harm in removing/recreating this as many times as needed.
-* If your Plex client supports the universal transcoder (see "Old and Universal transcoder @ https://support.plex.tv/hc/en-us/articles/200250377-Transcoding-Media), tracks will be scrobbled at the start of play. This is due to the way that the universal transcoder writes to the Plex log file. See issue 11 (https://github.com/jesseward/plex-tvst-scrobbler/issues/11) for background discussion.
-* We've seen instances when Plex Media Server does not report the length of an audio file. This may occur before a full library analyze has completed. When the track length is not reported by the Plex Media Server, the song will not be scrobble. Try forcing the "Analyze" audio library function. Further discussion found in issue #9 https://github.com/jesseward/plex-tvst-scrobbler/issues/9
-
-Or browse the github issues list to review old bugs or log a new problem.  See https://github.com/jesseward/plex-tvst-scrobbler/issues?q=
-
-
-Contributing
------------
-
-Any feedback on the performance on a MS Windows installation would be appreciated. I do not have ability to test plex-tvst-scrobbler on this platform. Please log an issue or a pull request with any fixes.
+* If you're experiencing authentication issues (appearing in plex_tvst_scrobbler.log), remove the session files and run the program to setup the authentication.
 
 Thanks
 ------
 
-The project https://github.com/jesseward/plex-lastfm-scrobbler was used as the base of the code.
+The project was forked from https://github.com/sportsreport2/tvshowtime-plex-scrobbler and edited.
